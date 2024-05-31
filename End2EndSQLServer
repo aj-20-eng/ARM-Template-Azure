@@ -25,7 +25,7 @@
     },
     "sqlServerName": {
       "type": "string",
-      "defaultValue": "sqlserver7689a",
+      "defaultValue": "SqlServer87abceamit",
       "metadata": {
         "description": "Name of the SQL Server."
       }
@@ -96,7 +96,10 @@
         "administratorLogin": "[parameters('sqlAdminUsername')]",
         "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
         "publicNetworkAccess": "Disabled"
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+      ]
     },
     {
       "type": "Microsoft.Sql/servers/databases",
@@ -107,7 +110,10 @@
         "collation": "SQL_Latin1_General_CP1_CI_AS",
         "maxSizeBytes": 1073741824,
         "sampleName": "AdventureWorksLT"
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+      ]
     },
     {
       "type": "Microsoft.Network/privateEndpoints",
@@ -129,7 +135,10 @@
             }
           }
         ]
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+      ]
     },
     {
       "type": "Microsoft.Network/privateDnsZones",
@@ -147,7 +156,11 @@
           "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
         },
         "registrationEnabled": false
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.database.windows.net')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+      ]
     },
     {
       "type": "Microsoft.Network/privateDnsZones/A",
@@ -157,12 +170,13 @@
         "ttl": 3600,
         "aRecords": [
           {
-            "ipv4Address": "[reference(concat(parameters('sqlServerName'), '-privateEndpoint')).properties.ipConfigurations[0].properties.privateIPAddress]"
+            "ipv4Address": "[reference(resourceId('Microsoft.Network/privateEndpoints', concat(parameters('sqlServerName'), '-privateEndpoint')), '2020-06-01').properties.ipConfigurations[0].properties.privateIPAddress]"
           }
         ]
       },
       "dependsOn": [
-        "[concat('Microsoft.Network/privateEndpoints/', parameters('sqlServerName'), '-privateEndpoint')]"
+        "[resourceId('Microsoft.Network/privateEndpoints', concat(parameters('sqlServerName'), '-privateEndpoint'))]",
+        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.database.windows.net')]"
       ]
     }
   ]
